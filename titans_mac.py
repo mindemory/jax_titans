@@ -1,17 +1,8 @@
-"""Titans, Memory as a Context (MAC) variant, in pure JAX.
+"""Titans (Behrouz, Zhong & Mirrokni, 2024), Memory as a Context variant, in JAX.
 
-Behrouz, Zhong & Mirrokni (2024), "Titans: Learning to Memorize at Test Time".
-Equation numbers refer to the paper.
-
-Each MAC layer splits the sequence into segments of C tokens and, for each segment:
-    1. recall    h = M_{t-1}(q)                          Eq. 21
-    2. attend    y = Attn([persistent | h | segment])    Eqs. 22-23
-    3. write     M_t = M_{t-1} updated with y            Eq. 24
-    4. gate      o = y * gate(M_t(y))                    Eq. 25
-
-The memory M is a small MLP whose weights are updated by gradient descent during the
-forward pass (the inner loop). The outer loop trains everything else, including M's
-initial weights, by backpropagating through those updates.
+Equation numbers refer to the paper. Each MAC layer processes the sequence in segments:
+recall from the memory (Eq. 21), attend over [persistent, recalled, segment] (Eqs. 22-23),
+write the attention output into the memory (Eq. 24), and gate the output (Eq. 25).
 """
 import argparse
 import dataclasses

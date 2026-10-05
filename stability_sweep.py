@@ -51,4 +51,3 @@ if __name__ == "__main__":
         for eta in etas:
             ratios = [float(heldout_ratio(t, eta, normalize, weights, train, test)) for t in thetas]
             print(f"eta={eta:<4}  " + "".join(f"{r:<12.3f}" for r in ratios))
-    print("\ntitans_mac.py uses theta <= 0.3, eta <= 0.7, normalized values.")
