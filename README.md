@@ -74,9 +74,27 @@ The validation windows are sampled at random and can overlap, so the standard er
 
 The memory makes no measurable difference here. Position 0 sees only one byte and behaves like a bigram model (about 2.5). Most of the benefit of context arrives within 3–4 bytes, and the remaining positions sit near 2.0. So even perfect recall of the previous segment would improve the overall loss by only about 0.02 nats. The observed differences (0.03 better at positions 0–1 of later segments, 0.01 worse at 4+) are within about one standard error. The memory is wired correctly, as the tests show, but this model and task leave little room for long-range context, and the token-by-token updates make training about 19× slower.
 
-Two plausible reasons the memory goes unused: recall is cued by the content of the current tokens, which doesn't directly encode "what came just before", and the bounded step size with 600 training steps may be too little.
+### Shorter window: `--segment_len 8`
 
-Next steps would be a shorter attention window (`--segment_len 8`), longer training, and a synthetic task that needs recall across segments.
+With 8-byte segments, half of all positions see fewer than the ~4 bytes of context the model uses, which gives the memory more room to matter. Same settings otherwise.
+
+| | validation loss | training time |
+|---|---|---|
+| MAC with memory | 2.007 | 176 s |
+| `--no_memory` | 2.038 | 8 s |
+
+| | pos 0 | pos 1 | pos 2 | pos 3 | pos 4–7 |
+|---|---|---|---|---|---|
+| memory, first segment | 2.47 ± 0.04 | 2.19 ± 0.05 | 1.88 ± 0.05 | 2.03 ± 0.05 | 1.92 ± 0.03 |
+| memory, later segments | 2.42 ± 0.01 | 2.10 ± 0.01 | 1.97 ± 0.01 | 1.93 ± 0.01 | 1.91 ± 0.01 |
+| no memory, first segment | 2.47 ± 0.05 | 2.18 ± 0.05 | 1.92 ± 0.05 | 2.03 ± 0.05 | 1.93 ± 0.03 |
+| no memory, later segments | 2.48 ± 0.01 | 2.12 ± 0.01 | 2.00 ± 0.01 | 1.96 ± 0.01 | 1.93 ± 0.01 |
+
+Here the memory helps by 0.03 nats overall, and the gain is where it should be. In the first segment, where there is nothing earlier to remember, the two models match. In later segments the memory model is better at every position, most of all at position 0 (2.42 vs 2.48), where the memory is the only access to preceding text. Within the memory model, position 0 is also better in later segments than in the first (2.42 vs 2.47); without memory it is not (2.48 vs 2.47). This within-model comparison doesn't depend on differences between training runs.
+
+Caveats: this is one seed, so run-to-run variance between the two trainings is not measured, and the standard errors are optimistic as noted above. Shrinking the window from 32 to 8 barely hurt the no-memory model (2.035 → 2.038), which confirms it relies on very short context.
+
+Possible reasons the memory contributes little overall: recall is cued by the content of the current tokens, which doesn't directly encode "what came just before", and the bounded step size with 600 training steps may be too little. Next steps would be more seeds, longer training, and a synthetic task that needs recall across segments.
 
 ## Notes on the paper
 
